@@ -1,0 +1,83 @@
+@model OlapWebBTL.Models.DiagInfo
+@{
+    ViewData["Title"] = "Diagnostics - Kết nối SSAS";
+}
+
+<div class="card-box">
+    <h3><i class="bi bi-plug"></i> Trạng thái kết nối</h3>
+    @if (Model.Error != null)
+    {
+        <div class="alert alert-danger">
+            <span class="status-err"><i class="bi bi-x-circle"></i> FAIL</span>
+            <pre class="mt-2 mb-0">@Model.Error</pre>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <span class="status-ok"><i class="bi bi-check-circle"></i> OK</span>
+            @Model.ConnectionStatus
+        </div>
+    }
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card-box">
+            <h3><i class="bi bi-box"></i> Cubes (@Model.Cubes.Count)</h3>
+            <ul class="small">
+                @foreach (var c in Model.Cubes) { <li>@c</li> }
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card-box">
+            <h3><i class="bi bi-rulers"></i> Measures (@Model.Measures.Count)</h3>
+            <div style="max-height:300px;overflow-y:auto">
+                <table class="pivot-table">
+                    <thead><tr><th>Name → Unique Name</th></tr></thead>
+                    <tbody>
+                        @foreach (var m in Model.Measures) { <tr><td><code>@m</code></td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card-box">
+            <h3><i class="bi bi-diagram-3"></i> Dimensions (@Model.Dimensions.Count)</h3>
+            <div style="max-height:300px;overflow-y:auto">
+                <table class="pivot-table">
+                    <tbody>
+                        @foreach (var d in Model.Dimensions) { <tr><td><code>@d</code></td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card-box">
+            <h3><i class="bi bi-list-nested"></i> Hierarchies (@Model.Hierarchies.Count)</h3>
+            <div style="max-height:300px;overflow-y:auto">
+                <table class="pivot-table">
+                    <tbody>
+                        @foreach (var h in Model.Hierarchies) { <tr><td><code>@h</code></td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-box">
+    <h3><i class="bi bi-terminal"></i> Chạy MDX tùy chỉnh</h3>
+    <form method="post" asp-action="RunMdx">
+        <textarea name="mdx" class="form-control font-monospace" rows="6" placeholder="SELECT {[Measures].[Gia Dat]} ON COLUMNS, [Dim Thoi Gian].[Nam].Members ON ROWS FROM [DW Quan Ly Phan Tich]"></textarea>
+        <button type="submit" class="btn btn-primary btn-sm mt-2">
+            <i class="bi bi-play-fill"></i> Chạy MDX
+        </button>
+    </form>
+</div>

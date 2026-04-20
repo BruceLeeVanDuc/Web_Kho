@@ -1,0 +1,83 @@
+@{
+    var active = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "") + "/"
+                 + (ViewContext.RouteData.Values["action"]?.ToString() ?? "");
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - OLAP Kho Dữ Liệu</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="bi bi-boxes"></i>
+            <div>
+                <div class="logo-title">OLAP Dashboard</div>
+                <div class="logo-sub">BTL Kho Dữ Liệu</div>
+            </div>
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link @(active.StartsWith("Dashboard/") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2"></i> Slice &amp; Dice
+            </a>
+            <div class="nav-section">9 Báo cáo OLAP</div>
+            <a class="nav-link @(active == "Reports/Index" ? "active" : "")" asp-controller="Reports" asp-action="Index">
+                <i class="bi bi-list-ul"></i> Danh sách báo cáo
+            </a>
+            @for (int i = 1; i <= 9; i++)
+            {
+                var a = $"Reports/Report{i}";
+                <a class="nav-link nav-sub @(active == a ? "active" : "")" asp-controller="Reports" asp-action="@("Report" + i)">
+                    <span class="badge">@i</span> @ReportTitles[i - 1]
+                </a>
+            }
+            <div class="nav-section">Hệ thống</div>
+            <a class="nav-link @(active.StartsWith("Diagnostics/") ? "active" : "")" asp-controller="Diagnostics" asp-action="Index">
+                <i class="bi bi-tools"></i> Diagnostics
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <small>Cube: <b>DW Quan Ly Phan Tich</b></small>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <h1 class="page-title">@ViewData["Title"]</h1>
+            <div class="topbar-actions">
+                <span class="badge bg-light text-dark">
+                    <i class="bi bi-hdd-rack"></i> SSAS: LEVANDUC\SERVER_VD1
+                </span>
+            </div>
+        </header>
+        <div class="content">
+            @RenderBody()
+        </div>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+@functions {
+    static readonly string[] ReportTitles = new[]
+    {
+        "Cửa hàng & mặt hàng",
+        "Đơn hàng theo KH",
+        "CH bán mặt hàng của KH",
+        "VPĐD có tồn kho >X",
+        "Chi tiết 1 đơn",
+        "TP/Bang của KH",
+        "Tồn kho MH tại TP",
+        "Chi tiết đơn hàng",
+        "Phân loại KH"
+    };
+}

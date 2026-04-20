@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "9 Báo cáo OLAP";
+    var items = new[] {
+        (1, "Cửa hàng & mặt hàng đang lưu trữ", "Liệt kê cửa hàng với TP, bang, SĐT + mô tả / kích cỡ / trọng lượng / giá của các mặt hàng."),
+        (2, "Đơn đặt hàng + khách hàng", "Tất cả đơn với tên KH và ngày đặt."),
+        (3, "Cửa hàng bán mặt hàng của KH", "Các cửa hàng đang bán những mặt hàng mà 1 KH đã đặt."),
+        (4, "VPĐD có tồn kho > X", "Địa chỉ VPĐD/TP/Bang của các CH lưu mặt hàng X với SL > ngưỡng."),
+        (5, "Chi tiết 1 đơn hàng", "Mặt hàng + mô tả + cửa hàng + TP cho 1 đơn cụ thể."),
+        (6, "TP / Bang nơi KH sinh sống", "Xác định vị trí sinh sống của khách hàng."),
+        (7, "Tồn kho 1 MH tại 1 TP", "Mức tồn 1 mặt hàng tại tất cả CH trong 1 thành phố."),
+        (8, "Chi tiết đơn hàng + KH + CH", "Mặt hàng, SL đặt, KH, cửa hàng, TP cho 1 đơn."),
+        (9, "Phân loại khách hàng", "Du lịch / Bưu điện / Cả 2 loại."),
+    };
+}
+<div class="row">
+@foreach (var (no, title, desc) in items)
+{
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card-box h-100">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2" style="font-size:14px;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">@no</span>
+                <h5 class="mb-0">@title</h5>
+            </div>
+            <p class="text-muted small mb-3">@desc</p>
+            <a href="@Url.Action($"Report{no}")" class="btn btn-sm btn-primary">
+                <i class="bi bi-eye"></i> Xem báo cáo
+            </a>
+        </div>
+    </div>
+}
+</div>

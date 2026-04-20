@@ -1,0 +1,35 @@
+@model OlapWebBTL.Models.ReportResult
+@{ ViewData["Title"] = "Kết quả MDX"; }
+
+<a asp-action="Index" class="btn btn-sm btn-outline-secondary mb-3">
+    <i class="bi bi-arrow-left"></i> Quay lại
+</a>
+
+<div class="card-box">
+    <h3>MDX đã chạy</h3>
+    <pre class="bg-light p-3 rounded small">@Model.Mdx</pre>
+</div>
+
+<div class="card-box">
+    <h3>Kết quả</h3>
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger"><strong>Lỗi:</strong> @Model.Error</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="pivot-table">
+                <thead>
+                    <tr>@foreach (var c in Model.Columns) { <th>@c</th> }</tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>@foreach (var cell in row) { <td>@cell</td> }</tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

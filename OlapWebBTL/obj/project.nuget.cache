@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "xykv1DnAe0U=",
+  "success": true,
+  "projectFilePath": "D:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\levan\\.nuget\\packages\\microsoft.analysisservices.adomdclient.netcore.retail.amd64\\19.84.1\\microsoft.analysisservices.adomdclient.netcore.retail.amd64.19.84.1.nupkg.sha512",
+    "C:\\Users\\levan\\.nuget\\packages\\microsoft.identity.client\\4.56.0\\microsoft.identity.client.4.56.0.nupkg.sha512",
+    "C:\\Users\\levan\\.nuget\\packages\\microsoft.identitymodel.abstractions\\6.22.0\\microsoft.identitymodel.abstractions.6.22.0.nupkg.sha512"
+  ],
+  "logs": []
+}

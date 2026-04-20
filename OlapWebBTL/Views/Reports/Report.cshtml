@@ -1,0 +1,65 @@
+@model OlapWebBTL.Models.ReportResult
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="card-box">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0">@Model.Title</h3>
+            @if (ViewBag.Param != null)
+            {
+                <small class="text-muted">Tham số: <code>@ViewBag.Param</code> = <code>@ViewBag.ParamValue</code></small>
+            }
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#mdxCode">
+            <i class="bi bi-code-slash"></i> Xem MDX
+        </button>
+    </div>
+
+    <div class="collapse mb-3" id="mdxCode">
+        <pre class="bg-light p-3 rounded small"><code>@Model.Mdx</code></pre>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger">
+            <strong><i class="bi bi-exclamation-triangle"></i> Lỗi:</strong> @Model.Error
+            <hr>
+            <small>Kiểm tra lại tên attribute trong cube. Vào <a asp-controller="Diagnostics" asp-action="Index">Diagnostics</a> để xem tên chính xác.</small>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted small mb-2">
+            <i class="bi bi-info-circle"></i> Kết quả: <strong>@Model.Rows.Count</strong> dòng × <strong>@Model.Columns.Count</strong> cột
+        </p>
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+            <table class="pivot-table">
+                <thead style="position: sticky; top: 0;">
+                    <tr>
+                        @foreach (var c in Model.Columns)
+                        {
+                            <th>@c</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row)
+                            {
+                                <td>@cell</td>
+                            }
+                        </tr>
+                    }
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr><td colspan="@Model.Columns.Count" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

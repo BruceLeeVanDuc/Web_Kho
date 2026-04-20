@@ -1,0 +1,272 @@
+:root {
+    --sidebar-bg: #1e293b;
+    --sidebar-fg: #cbd5e1;
+    --sidebar-fg-active: #fff;
+    --sidebar-accent: #3b82f6;
+    --sidebar-width: 260px;
+    --content-bg: #f1f5f9;
+    --card-border: #e2e8f0;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+    font-family: 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--content-bg);
+    color: #1e293b;
+}
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-fg);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+.sidebar .logo {
+    padding: 20px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #334155;
+}
+.sidebar .logo i {
+    font-size: 28px;
+    color: var(--sidebar-accent);
+}
+.sidebar .logo-title {
+    font-weight: 700;
+    color: #fff;
+    font-size: 16px;
+}
+.sidebar .logo-sub {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.sidebar nav {
+    flex: 1;
+    padding: 10px 8px;
+}
+.sidebar .nav-link {
+    color: var(--sidebar-fg);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 1px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+.sidebar .nav-link:hover {
+    background: #334155;
+    color: #fff;
+}
+.sidebar .nav-link.active {
+    background: var(--sidebar-accent);
+    color: #fff;
+    font-weight: 500;
+}
+.sidebar .nav-link.nav-sub {
+    padding-left: 12px;
+    font-size: 13px;
+}
+.sidebar .nav-link .badge {
+    background: #475569;
+    color: #fff;
+    font-size: 11px;
+    min-width: 22px;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+.sidebar .nav-link.active .badge {
+    background: rgba(255,255,255,0.25);
+}
+.sidebar .nav-section {
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    padding: 14px 12px 6px;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+.sidebar-footer {
+    padding: 14px 18px;
+    border-top: 1px solid #334155;
+    color: #64748b;
+    font-size: 11px;
+}
+
+/* ===== Main ===== */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.topbar {
+    background: #fff;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.page-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    color: #0f172a;
+}
+.content {
+    padding: 22px 24px;
+}
+
+/* ===== KPI Cards ===== */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.kpi-card {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.kpi-label {
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+}
+.kpi-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+.kpi-card.blue .kpi-value { color: #2563eb; }
+.kpi-card.green .kpi-value { color: #059669; }
+.kpi-card.orange .kpi-value { color: #ea580c; }
+.kpi-card.purple .kpi-value { color: #7c3aed; }
+
+/* ===== Cards ===== */
+.card-box {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.card-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: #0f172a;
+}
+
+/* Chart row */
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-row canvas { max-height: 320px; }
+
+/* ===== Filter panel ===== */
+.filter-panel {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+}
+.filter-panel h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #64748b;
+    margin: 0 0 10px 0;
+    letter-spacing: 0.5px;
+}
+.filter-chip {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    margin: 2px 4px 2px 0;
+    font-size: 13px;
+    color: #475569;
+    background: #f8fafc;
+    cursor: pointer;
+    text-decoration: none;
+}
+.filter-chip:hover { background: #e2e8f0; }
+.filter-chip.active {
+    background: var(--sidebar-accent);
+    color: #fff;
+    border-color: var(--sidebar-accent);
+}
+
+/* ===== Table ===== */
+.pivot-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pivot-table th {
+    background: #f8fafc;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 2px solid var(--card-border);
+}
+.pivot-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+.pivot-table td.num, .pivot-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pivot-table tr:hover { background: #f8fafc; }
+.bar-inline {
+    height: 6px;
+    background: #dbeafe;
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 60px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 80px;
+}
+.bar-inline > div {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+}
+
+/* ===== Badge/status ===== */
+.status-ok { color: #059669; font-weight: 600; }
+.status-err { color: #dc2626; font-weight: 600; }
+
+/* Responsive */
+@media (max-width: 992px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .chart-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .sidebar { width: 220px; }
+}

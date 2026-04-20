@@ -1,0 +1,215 @@
+@model OlapWebBTL.Models.DashboardVM
+@{
+    ViewData["Title"] = "Dashboard - Slice & Dice";
+    var dim = Model.DimensionChon;
+    var level = Model.LevelChon;
+}
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">
+        <strong>Lỗi MDX:</strong> @ViewBag.Error
+        <pre class="small mt-2 mb-0">@ViewBag.Mdx</pre>
+    </div>
+}
+
+<div class="filter-panel">
+    <div class="d-flex justify-content-between align-items-center">
+        <h4 class="mb-0"><i class="bi bi-funnel"></i> SLICE &amp; DICE</h4>
+        <a href="@Url.Action("Index")" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise"></i> Reset
+        </a>
+    </div>
+    <hr class="my-2">
+
+    <div class="row g-2 align-items-center">
+        <div class="col-auto">
+            <label class="small text-muted">Chiều phân tích:</label>
+        </div>
+        <div class="col-auto">
+            @{
+                var dims = new[] {
+                    ("ThoiGian", "Thời gian", "bi-calendar"),
+                    ("MatHang", "Mặt hàng", "bi-box-seam"),
+                    ("KhachHang", "Khách hàng", "bi-people"),
+                    ("CuaHang", "Cửa hàng", "bi-shop")
+                };
+            }
+            @foreach (var (id, name, icon) in dims)
+            {
+                <a class="filter-chip @(dim == id ? "active" : "")"
+                   href="@Url.Action("Index", new { dim = id, level = DefaultLevel(id) })">
+                    <i class="bi @icon"></i> @name
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (dim == "ThoiGian")
+    {
+        <div class="mt-2">
+            <span class="small text-muted me-2">Cấp độ:</span>
+            @foreach (var lv in new[] { ("Nam", "Năm"), ("Quy", "Quý"), ("Thang", "Tháng"), ("Ngay", "Ngày") })
+            {
+                <a class="filter-chip @(level == lv.Item1 ? "active" : "")"
+                   href="@Url.Action("Index", new { dim, level = lv.Item1 })">@lv.Item2</a>
+            }
+        </div>
+    }
+    else if (dim == "CuaHang")
+    {
+        <div class="mt-2">
+            <span class="small text-muted me-2">Cấp độ:</span>
+            @foreach (var lv in new[] { ("Bang", "Bang"), ("ThanhPho", "Thành phố"), ("MaCH", "Cửa hàng") })
+            {
+                <a class="filter-chip @(level == lv.Item1 ? "active" : "")"
+                   href="@Url.Action("Index", new { dim, level = lv.Item1 })">@lv.Item2</a>
+            }
+        </div>
+    }
+    else if (dim == "KhachHang")
+    {
+        <div class="mt-2">
+            <span class="small text-muted me-2">Cấp độ:</span>
+            @foreach (var lv in new[] { ("Loai", "Loại KH"), ("ThanhPho", "Thành phố"), ("TenKH", "Tên KH") })
+            {
+                <a class="filter-chip @(level == lv.Item1 ? "active" : "")"
+                   href="@Url.Action("Index", new { dim, level = lv.Item1 })">@lv.Item2</a>
+            }
+        </div>
+    }
+</div>
+
+<div class="kpi-row">
+    <div class="kpi-card blue">
+        <div class="kpi-label">Tổng doanh thu</div>
+        <div class="kpi-value">@Model.TongDoanhThu.ToString("N0") ₫</div>
+        <div class="kpi-sub">Từ cube DW Quan Ly Phan Tich</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-label">Số lượng bán</div>
+        <div class="kpi-value">@Model.TongSoLuong.ToString("N0")</div>
+        <div class="kpi-sub">sản phẩm</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-label">Số dòng fact</div>
+        <div class="kpi-value">@Model.TongSoDon.ToString("N0")</div>
+        <div class="kpi-sub">đơn hàng / item</div>
+    </div>
+    <div class="kpi-card purple">
+        <div class="kpi-label">Số dòng kết quả</div>
+        <div class="kpi-value">@Model.SoDong</div>
+        <div class="kpi-sub">theo chiều đang chọn</div>
+    </div>
+</div>
+
+<div class="chart-row">
+    <div class="card-box">
+        <h3><i class="bi bi-bar-chart-fill"></i> Biểu đồ cột - Doanh thu</h3>
+        <canvas id="barChart"></canvas>
+    </div>
+    <div class="card-box">
+        <h3><i class="bi bi-pie-chart-fill"></i> Biểu đồ tròn - Tỷ trọng</h3>
+        <canvas id="pieChart"></canvas>
+    </div>
+</div>
+
+<div class="card-box">
+    <h3><i class="bi bi-table"></i> Pivot Table - Cube Bán Hàng</h3>
+    <div class="table-responsive">
+        <table class="pivot-table">
+            <thead>
+                <tr>
+                    <th>@LabelByDim(dim, level)</th>
+                    <th class="num">Doanh thu (₫)</th>
+                    <th class="num">Số lượng bán</th>
+                    <th class="num">Số dòng</th>
+                    <th class="num">% tổng</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model.Rows)
+            {
+                <tr>
+                    <td><strong>@r.Label</strong></td>
+                    <td class="num">@r.DoanhThu.ToString("N0")</td>
+                    <td class="num">@r.SoLuong.ToString("N0")</td>
+                    <td class="num">@r.SoDon.ToString("N0")</td>
+                    <td class="num">
+                        <span class="bar-inline"><div style="width:@r.TyLe%"></div></span>
+                        @r.TyLe.ToString("0.00")%
+                    </td>
+                </tr>
+            }
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="5" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BarData.Select(x => x.Label)));
+const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BarData.Select(x => x.Value)));
+
+const palette = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#eab308'];
+const bgColors = labels.map((_, i) => palette[i % palette.length]);
+
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [{ label: 'Doanh thu', data: values, backgroundColor: '#3b82f6', borderRadius: 4 }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { ticks: { callback: v => (v/1e9).toFixed(1) + 'B' } }
+        }
+    }
+});
+
+new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: bgColors }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'right', labels: { font: { size: 11 } } }
+        }
+    }
+});
+</script>
+}
+
+@functions {
+    static string DefaultLevel(string dim) => dim switch
+    {
+        "ThoiGian" => "Nam",
+        "CuaHang" => "Bang",
+        "KhachHang" => "Loai",
+        _ => ""
+    };
+    static string LabelByDim(string dim, string level) => (dim, level) switch
+    {
+        ("ThoiGian", "Nam") => "Năm",
+        ("ThoiGian", "Quy") => "Quý",
+        ("ThoiGian", "Thang") => "Tháng",
+        ("ThoiGian", "Ngay") => "Ngày",
+        ("MatHang", _) => "Mặt hàng",
+        ("KhachHang", "Loai") => "Loại khách hàng",
+        ("KhachHang", "ThanhPho") => "Thành phố",
+        ("KhachHang", "TenKH") => "Tên khách hàng",
+        ("CuaHang", "Bang") => "Bang",
+        ("CuaHang", "ThanhPho") => "Thành phố",
+        ("CuaHang", "MaCH") => "Cửa hàng",
+        _ => "Label"
+    };
+}
