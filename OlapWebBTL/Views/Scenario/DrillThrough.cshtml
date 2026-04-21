@@ -1,0 +1,341 @@
+@model OlapWebBTL.Models.DrillThroughVM
+@{
+    ViewData["Title"] = "Kịch bản 4.1 — Drill Through";
+    string BuildUrl(string? maKH = null, int? year = null) =>
+        Url.Action("DrillThrough", "Scenario", new { maKH, year = year ?? Model.Year })!;
+    bool hasCustomer = !string.IsNullOrEmpty(Model.MaKH);
+}
+
+<div class="content">
+
+    @* ===== HEADER ===== *@
+    <div class="card-box" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:none;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div style="font-size:12px;color:#92400e;font-weight:700;letter-spacing:1px;">KỊCH BẢN 4.1</div>
+                <h3 class="m-0">Drill Through — Lịch sử Giao dịch Khách hàng</h3>
+                <div class="text-muted small mt-1">
+                    Từ <b>dữ liệu tổng hợp</b> (cuboid), khoan xuyên xuống <b>từng dòng giao dịch gốc</b> của khách hàng.
+                    Click vào khách hàng bên dưới để xem chi tiết.
+                </div>
+            </div>
+            @if (hasCustomer)
+            {
+                <a href="@BuildUrl()" class="btn btn-sm btn-outline-warning">
+                    <i class="bi bi-arrow-left-circle"></i> Quay lại Top 5
+                </a>
+            }
+        </div>
+    </div>
+
+    @*===== YEAR FILTER ===== *@
+    <div class="card-box py-2">
+        <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+            @if (hasCustomer)
+            {
+                <input type="hidden" name="maKH" value="@Model.MaKH" />
+            }
+            <label class="small fw-semibold mb-0">Năm:</label>
+            <select class="form-select form-select-sm" name="year" style="width:120px;" onchange="this.form.submit()">
+                <option value="">Tất cả năm</option>
+                @foreach (var y in Model.Years)
+                {
+                    <option value="@y" selected="@(Model.Year == y)">@y</option>
+                }
+            </select>
+            @if (Model.Year.HasValue)
+            {
+                <a href="@(hasCustomer ? BuildUrl(Model.MaKH, null) : BuildUrl())" class="btn btn-sm btn-outline-secondary">
+                    Xóa lọc năm
+                </a>
+            }
+            <span class="text-muted small ms-auto">
+                <i class="bi bi-info-circle"></i>
+                Bước 1: Chọn năm (tuỳ chọn) → Bước 2: Click vào khách hàng để xem giao dịch gốc
+            </span>
+        </form>
+    </div>
+
+    @*===== TOP 5 KHÁCH HÀNG ===== *@
+    <div class="card-box">
+        <h5 class="mb-3">
+            <i class="bi bi-trophy-fill text-warning"></i>
+            Top 5 Khách hàng theo Doanh thu
+            @if (Model.Year.HasValue) { <span class="badge bg-warning text-dark ms-2">Năm @Model.Year</span> }
+        </h5>
+
+        @if (!Model.Top5.Any())
+        {
+            <div class="alert alert-warning">Không có dữ liệu Top 5. Kiểm tra kết nối database.</div>
+        }
+        else
+        {
+            <div class="row g-3 align-items-start">
+                @*Bar chart *@
+                <div class="col-lg-5">
+                    <div style="position:relative;height:220px;">
+                        <canvas id="top5Chart"></canvas>
+                    </div>
+                </div>
+
+                @*Table *@
+                <div class="col-lg-7">
+                    <table class="pivot-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Mã KH</th>
+                                <th>Tên Khách hàng</th>
+                                <th>Loại</th>
+                                <th>Bang / TP</th>
+                                <th class="num">Doanh thu</th>
+                                <th class="num">SL đặt</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Top5.Count; i++)
+                            {
+                                var c = Model.Top5[i];
+                                bool isSelected = c.MaKH == Model.MaKH;
+                                <tr class="@(isSelected ? "table-warning fw-semibold" : "")">
+                                    <td>
+                                        <span class="badge" style="background:@(new[]{"#f59e0b","#94a3b8","#cd7f32","#6366f1","#22c55e"}[i]);">
+                                            @(i + 1)
+                                        </span>
+                                    </td>
+                                    <td><code>@c.MaKH</code></td>
+                                    <td>@(string.IsNullOrEmpty(c.TenKH) ? c.MaKH : c.TenKH)</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(c.LoaiKH))
+                                        {
+                                            <span class="badge bg-secondary">@c.LoaiKH</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@c.Bang@((!string.IsNullOrEmpty(c.Bang) && !string.IsNullOrEmpty(c.ThanhPho)) ? " / " : "")@c.ThanhPho</td>
+                                    <td class="num fw-semibold text-primary">@c.DoanhThu.ToString("N0")</td>
+                                    <td class="num">@c.SoLuong.ToString("N0")</td>
+                                    <td>
+                                        @if (isSelected)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-eye-fill"></i> Đang xem</span>
+                                        }
+                                        else
+                                        {
+                                            <a href="@BuildUrl(c.MaKH)" class="btn btn-xs btn-warning">
+                                                <i class="bi bi-search"></i> Drill Through
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    @*===== DRILL THROUGH DETAIL ===== *@
+    @if (hasCustomer)
+    {
+        @*Customer info card *@
+        <div class="card-box" style="border-left:4px solid #f59e0b;">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-person-circle" style="font-size:1.5rem;color:#f59e0b;"></i>
+                <div>
+                    <div style="font-size:11px;color:#92400e;font-weight:700;letter-spacing:1px;">DRILL THROUGH — ĐANG XEM CHI TIẾT</div>
+                    <h4 class="m-0">
+                        @(string.IsNullOrEmpty(Model.TenKH) ? Model.MaKH : Model.TenKH)
+                        <code class="small text-muted ms-2">(@Model.MaKH)</code>
+                    </h4>
+                </div>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-sm-3">
+                    <div class="card-box text-center py-2" style="background:#fef9c3;">
+                        <div class="small text-muted">Tổng Doanh thu</div>
+                        <div class="h5 fw-bold text-warning mb-0">@Model.TotalDoanhThu.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card-box text-center py-2" style="background:#f0fdf4;">
+                        <div class="small text-muted">Tổng SL đặt</div>
+                        <div class="h5 fw-bold text-success mb-0">@Model.TotalSoLuong.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card-box text-center py-2" style="background:#eff6ff;">
+                        <div class="small text-muted">Số dòng GD</div>
+                        <div class="h5 fw-bold text-primary mb-0">@Model.TotalDonHang</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card-box py-2" style="background:#f8fafc;">
+                        <div class="small text-muted mb-1">Thông tin</div>
+                        @if (!string.IsNullOrEmpty(Model.LoaiKH))
+                        {
+                            <span class="badge bg-secondary me-1">@Model.LoaiKH</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Bang))
+                        {
+                            <span class="badge bg-light text-dark border">@Model.Bang</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.ThanhPho))
+                        {
+                            <div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> @Model.ThanhPho</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @*Transaction table *@
+        <div class="card-box">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i>
+                    Lịch sử Giao dịch Gốc
+                    <span class="badge bg-secondary ms-2">@Model.Transactions.Count dòng</span>
+                </h5>
+                <span class="badge bg-light text-dark border small">
+                    Nguồn: <code>@Model.SourceTable</code>
+                </span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="alert alert-danger"><b>Lỗi:</b> @Model.Error</div>
+            }
+            else if (!Model.Transactions.Any())
+            {
+                <div class="alert alert-info">Không có giao dịch nào cho khách hàng này.</div>
+            }
+            else
+            {
+                <div class="table-responsive" style="max-height:480px;">
+                    <table class="table table-sm table-striped table-hover align-middle mb-0">
+                        <thead class="table-dark" style="position:sticky;top:0;">
+                            <tr>
+                                <th>#</th>
+                                <th>Thời gian</th>
+                                <th>Mã MH</th>
+                                <th>Mô tả</th>
+                                <th>Kích cỡ</th>
+                                <th class="text-end">SL đặt</th>
+                                <th class="text-end">Doanh thu</th>
+                                <th class="text-end">Giá TB</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Transactions.Count; i++)
+                            {
+                                var t = Model.Transactions[i];
+                                <tr>
+                                    <td class="text-muted small">@(i + 1)</td>
+                                    <td><span class="badge bg-light text-dark border">@t.ThoiGian</span></td>
+                                    <td><code>@t.MaMH</code></td>
+                                    <td>@(string.IsNullOrEmpty(t.MoTa) ? "—" : t.MoTa)</td>
+                                    <td class="small text-muted">@t.KichCo</td>
+                                    <td class="text-end">@t.SoLuong.ToString("N0")</td>
+                                    <td class="text-end fw-semibold text-primary">@t.DoanhThu.ToString("N0")</td>
+                                    <td class="text-end text-muted small">@t.GiaTB.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-semibold">
+                            <tr>
+                                <td colspan="5" class="text-end">Tổng cộng:</td>
+                                <td class="text-end">@Model.Transactions.Sum(t => t.SoLuong).ToString("N0")</td>
+                                <td class="text-end text-primary">@Model.Transactions.Sum(t => t.DoanhThu).ToString("N0")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+
+        @*SQL debug *@
+        <div class="card-box">
+            <details>
+                <summary class="text-muted small">SQL Drill Through đã chạy</summary>
+                <pre style="font-size:12px;background:#f8fafc;padding:12px;border-radius:6px;margin-top:8px;white-space:pre-wrap;">@Model.Sql</pre>
+            </details>
+        </div>
+    }
+
+</div>
+
+<script type="application/json" id="top5-data">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    labels = Model.Top5.Select(c => string.IsNullOrEmpty(c.TenKH) ? c.MaKH : c.TenKH).ToArray(),
+    values = Model.Top5.Select(c => (double)c.DoanhThu).ToArray(),
+    maKHs  = Model.Top5.Select(c => c.MaKH).ToArray(),
+    colors = new[]{"#f59e0b","#94a3b8","#cd7f32","#6366f1","#22c55e"},
+    selectedMaKH = Model.MaKH,
+    year = Model.Year,
+}))
+</script>
+
+@section Scripts {
+<script>
+(function () {
+    var data = JSON.parse(document.getElementById('top5-data').textContent);
+    var ctx = document.getElementById('top5Chart');
+    if (!ctx || !data.labels.length) return;
+
+    var bgColors = data.labels.map(function(_, i) {
+        return data.maKHs[i] === data.selectedMaKH
+            ? '#f59e0b'
+            : data.colors[i] || '#94a3b8';
+    });
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Doanh thu',
+                data: data.values,
+                backgroundColor: bgColors,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return 'Doanh thu: ' + ctx.parsed.x.toLocaleString('vi-VN');
+                        },
+                        afterLabel: function() { return '  ← Click để Drill Through'; }
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { callback: function(v) { return v.toLocaleString('vi-VN'); } } }
+            },
+            onClick: function(evt, elements) {
+                if (!elements.length) return;
+                var i = elements[0].index;
+                var maKH = data.maKHs[i];
+                var url = new URL(window.location.href);
+                url.searchParams.set('maKH', maKH);
+                if (data.year) url.searchParams.set('year', data.year);
+                window.location.href = url.toString();
+            },
+            onHover: function(evt, elements) {
+                evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            }
+        }
+    });
+})();
+</script>
+}

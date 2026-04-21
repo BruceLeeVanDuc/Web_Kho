@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj": {}
+    "d:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj": {}
   },
   "projects": {
-    "D:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj": {
+    "d:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj",
+        "projectUniqueName": "d:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj",
         "projectName": "OlapWebBTL",
-        "projectPath": "D:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj",
+        "projectPath": "d:\\Kho\\OlapWebBTL\\OlapWebBTL.csproj",
         "packagesPath": "C:\\Users\\levan\\.nuget\\packages\\",
-        "outputPath": "D:\\Kho\\OlapWebBTL\\obj\\",
+        "outputPath": "d:\\Kho\\OlapWebBTL\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\levan\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -43,9 +43,17 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Dapper": {
+              "target": "Package",
+              "version": "[2.1.72, )"
+            },
             "Microsoft.AnalysisServices.AdomdClient.NetCore.retail.amd64": {
               "target": "Package",
               "version": "[19.84.1, )"
+            },
+            "Microsoft.Data.SqlClient": {
+              "target": "Package",
+              "version": "[7.0.0, )"
             }
           },
           "imports": [

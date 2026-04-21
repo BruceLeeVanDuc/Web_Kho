@@ -1,0 +1,213 @@
+@model OlapWebBTL.Models.PivotVM
+@{
+    ViewData["Title"] = "5.3.2 Pivot Explorer";
+    var dims = OlapWebBTL.Models.PivotVM.DimLabels;
+    string Swap() => Url.Action("Pivot", "Scenario", new
+    {
+        rows = Model.ColDim, cols = Model.RowDim,
+        measure = Model.Measure, year = Model.Year, bang = Model.Bang
+    })!;
+    string FmtCell(decimal v) => v == 0 ? "—" : v.ToString("N0");
+}
+
+<div class="content">
+    <div class="card-box" style="background:linear-gradient(135deg,#fde68a 0%,#fcd34d 100%);border:none;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div style="font-size:12px;color:#92400e;font-weight:700;letter-spacing:1px;">KỊCH BẢN 5.3.2</div>
+                <h3 class="m-0">Slice & Dice + Pivot Explorer</h3>
+                <div class="text-muted small mt-1">
+                    Chọn <b>Rows</b>, <b>Columns</b>, <b>Measure</b> → ma trận 2D.
+                    <b>Slice</b>: chọn 1 bang. <b>Dice</b>: thêm năm. <b>Pivot</b>: đổi trục.
+                </div>
+            </div>
+            <div>
+                <span class="badge bg-white text-dark border">Cuboid: <b>@Model.TableName</b></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-box">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="small text-muted">Rows (Hàng)</label>
+                <select name="rows" class="form-select form-select-sm">
+                    @foreach (var kv in dims)
+                    {
+                        <option value="@kv.Key" selected="@(kv.Key==Model.RowDim)">@kv.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-muted">Columns (Cột)</label>
+                <select name="cols" class="form-select form-select-sm">
+                    @foreach (var kv in dims)
+                    {
+                        <option value="@kv.Key" selected="@(kv.Key==Model.ColDim)">@kv.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-muted">Measure</label>
+                <select name="measure" class="form-select form-select-sm">
+                    <option value="DoanhThu" selected="@(Model.Measure=="DoanhThu")">Doanh thu</option>
+                    <option value="SL" selected="@(Model.Measure=="SL")">Số lượng đặt</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-muted">Slice: Năm</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">— Tất cả —</option>
+                    @foreach (var y in Model.Options.Years)
+                    {
+                        <option value="@y" selected="@(Model.Year==y)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-muted">Slice: Bang</label>
+                <select name="bang" class="form-select form-select-sm">
+                    <option value="">— Tất cả —</option>
+                    @foreach (var b in Model.Options.Bangs)
+                    {
+                        <option value="@b" selected="@(Model.Bang==b)">@b</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-primary btn-sm flex-fill">
+                    <i class="bi bi-funnel"></i> Áp dụng
+                </button>
+                <a class="btn btn-outline-secondary btn-sm" href="@Swap()" title="Xoay trục (Pivot)">
+                    <i class="bi bi-arrow-left-right"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger"><b>Lỗi:</b> @Model.Error</div>
+    }
+
+    <div class="card-box">
+        <h3>
+            @dims[Model.RowDim] <i class="bi bi-x-lg small mx-2 text-muted"></i> @dims[Model.ColDim]
+            — @(Model.Measure == "DoanhThu" ? "Doanh thu" : "Số lượng đặt")
+        </h3>
+        @if (Model.RowLabels.Count == 0)
+        {
+            <p class="text-muted">Không có dữ liệu.</p>
+        }
+        else
+        {
+            <div style="overflow-x:auto;">
+                <table class="pivot-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#eff6ff;">@dims[Model.RowDim] \ @dims[Model.ColDim]</th>
+                            @foreach (var cl in Model.ColLabels)
+                            {
+                                <th class="num">@cl</th>
+                            }
+                            <th class="num" style="background:#fef3c7;">Tổng hàng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rl in Model.RowLabels)
+                        {
+                            <tr>
+                                <td style="font-weight:600;background:#f8fafc;">@rl</td>
+                                @foreach (var cl in Model.ColLabels)
+                                {
+                                    var v = Model.Cells.TryGetValue(rl, out var d) && d.TryGetValue(cl, out var vv) ? vv : 0;
+                                    <td class="num">@FmtCell(v)</td>
+                                }
+                                <td class="num" style="background:#fef3c7;font-weight:600;">
+                                    @FmtCell(Model.RowTotals.TryGetValue(rl, out var rt) ? rt : 0)
+                                </td>
+                            </tr>
+                        }
+                        <tr>
+                            <td style="font-weight:700;background:#fef3c7;">Tổng cột</td>
+                            @foreach (var cl in Model.ColLabels)
+                            {
+                                <td class="num" style="background:#fef3c7;font-weight:600;">
+                                    @FmtCell(Model.ColTotals.TryGetValue(cl, out var ct) ? ct : 0)
+                                </td>
+                            }
+                            <td class="num" style="background:#fbbf24;color:#78350f;font-weight:700;">
+                                @FmtCell(Model.GrandTotal)
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="card-box">
+        <h3>Biểu đồ — Stacked bar</h3>
+        <div style="position:relative;height:360px;">
+            <canvas id="pivotChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card-box">
+        <details>
+            <summary class="text-muted small">SQL đã chạy</summary>
+            <pre style="font-size:12px;background:#f8fafc;padding:12px;border-radius:6px;margin-top:8px;white-space:pre-wrap;">@Model.Sql</pre>
+        </details>
+    </div>
+</div>
+
+<script type="application/json" id="pivot-data">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    rowLabels = Model.RowLabels,
+    colLabels = Model.ColLabels,
+    measure = Model.Measure == "DoanhThu" ? "Doanh thu" : "Số lượng",
+    datasets = Model.ColLabels.Select(cl => new {
+        label = cl,
+        data = Model.RowLabels.Select(rl =>
+            Model.Cells.TryGetValue(rl, out var d) && d.TryGetValue(cl, out var vv) ? (double)vv : 0.0
+        ).ToArray(),
+    }).ToArray(),
+}))
+</script>
+
+@section Scripts {
+<script>
+(function() {
+    const d = JSON.parse(document.getElementById('pivot-data').textContent);
+    const ctx = document.getElementById('pivotChart');
+    if (!ctx || !d.rowLabels.length) return;
+    const palette = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16'];
+    const datasets = d.datasets.map((ds, i) => ({
+        ...ds,
+        backgroundColor: palette[i % palette.length],
+        borderRadius: 4,
+    }));
+    new Chart(ctx, {
+        type: 'bar',
+        data: { labels: d.rowLabels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: (c) => c.dataset.label + ': ' + c.parsed.y.toLocaleString('vi-VN'),
+                    }
+                }
+            },
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, ticks: { callback: v => v.toLocaleString('vi-VN') } }
+            }
+        }
+    });
+})();
+</script>
+}

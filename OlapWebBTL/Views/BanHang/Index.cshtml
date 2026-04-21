@@ -1,0 +1,30 @@
+@model OlapWebBTL.Models.OlapDashboardVM
+@{
+    ViewData["Title"] = "Dashboard Bán Hàng (ROLAP)";
+}
+<partial name="_OlapDashboard" model="Model" />
+
+@section Scripts {
+
+<script>
+    (function () {
+        var el = document.getElementById('olap-chart-data');
+        if (!el) return;
+        var data; try { data = JSON.parse(el.textContent); } catch (e) { return; }
+        var bar = data.bar || [], pie = data.pie || [];
+        if (!bar.length) return;
+        var palette = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6','#3b82f6','#f97316','#84cc16','#a855f7','#f43f5e','#0ea5e9','#10b981'];
+        new Chart(document.getElementById('chartBar'), {
+            type: 'bar',
+            data: { labels: bar.map(function(d){return d.Label;}), datasets: [{ data: bar.map(function(d){return d.Value;}), backgroundColor: palette, borderRadius: 4 }] },
+            options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 60, minRotation: 30 } } } }
+        });
+        new Chart(document.getElementById('chartPie'), {
+            type: 'doughnut',
+            data: { labels: pie.map(function(d){return d.Label;}), datasets: [{ data: pie.map(function(d){return d.Value;}), backgroundColor: palette }] },
+            options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+        });
+    })();
+</script>
+
+}

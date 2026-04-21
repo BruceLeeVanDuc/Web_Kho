@@ -1,9 +1,10 @@
-﻿using OlapWebBTL.Services;
+using OlapWebBTL.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<OlapService>();
+builder.Services.AddScoped<RolapService>();
 
 var app = builder.Build();
 

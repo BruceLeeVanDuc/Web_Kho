@@ -1,0 +1,196 @@
+@model OlapWebBTL.Models.DrillChartVM
+@{
+    ViewData["Title"] = "5.3.1 Drill Chart — Bán hàng";
+    string BuildUrl(string level, int? year = null, int? quarter = null) =>
+        Url.Action("DrillChart", "Scenario", new { level, year, quarter, measure = Model.Measure })!;
+    var rollUpUrl = Model.Level switch
+    {
+        "month" => BuildUrl("quarter", Model.Year),
+        "quarter" => BuildUrl("year"),
+        _ => BuildUrl("year"),
+    };
+}
+
+<div class="content">
+    <div class="card-box" style="background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%);border:none;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div style="font-size:12px;color:#1e40af;font-weight:700;letter-spacing:1px;">KỊCH BẢN 5.3.1</div>
+                <h3 class="m-0">Drill Down / Roll Up — Bán hàng theo thời gian</h3>
+                <div class="text-muted small mt-1">
+                    Click vào cột để <b>Drill Down</b> xuống mức chi tiết hơn (Năm → Quý → Tháng).
+                    Dùng nút <i class="bi bi-arrow-up-circle"></i> để <b>Roll Up</b>.
+                </div>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-white text-dark border">Cuboid đang dùng: <b>@Model.TableName</b></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-box">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="level" value="@Model.Level" />
+            @if (Model.Year != null) { <input type="hidden" name="year" value="@Model.Year" /> }
+            @if (Model.Quarter != null) { <input type="hidden" name="quarter" value="@Model.Quarter" /> }
+            <div class="col-auto">
+                <label class="small text-muted">Measure</label>
+                <select class="form-select form-select-sm" name="measure" onchange="this.form.submit()">
+                    <option value="DoanhThu" selected="@(Model.Measure=="DoanhThu")">Doanh thu</option>
+                    <option value="SL" selected="@(Model.Measure=="SL")">Số lượng đặt</option>
+                </select>
+            </div>
+
+            <div class="col-auto d-flex align-items-center gap-1">
+                <a class="filter-chip @(Model.Level=="year"?"active":"")" href="@BuildUrl("year")">Năm</a>
+                @if (Model.Level != "year")
+                {
+                    <span class="text-muted">›</span>
+                    <a class="filter-chip @(Model.Level=="quarter"?"active":"")" href="@BuildUrl("quarter", Model.Year)">@Model.Year</a>
+                }
+                @if (Model.Level == "month")
+                {
+                    <span class="text-muted">›</span>
+                    <span class="filter-chip active">@(Model.Quarter != null ? $"Q{Model.Quarter}" : "Năm " + Model.Year)</span>
+                }
+            </div>
+
+            <div class="col-auto ms-auto">
+                @if (Model.Level != "year")
+                {
+                    <a class="btn btn-sm btn-outline-primary" href="@rollUpUrl">
+                        <i class="bi bi-arrow-up-circle"></i> Roll Up
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger"><b>Lỗi:</b> @Model.Error</div>
+    }
+
+    <div class="card-box">
+        <h3>@Model.Title</h3>
+        <div style="position:relative;height:420px;">
+            <canvas id="drillChart"></canvas>
+        </div>
+        @if (Model.Level != "month")
+        {
+            <div class="small text-muted mt-2">
+                <i class="bi bi-info-circle"></i> Click vào một cột để khoan sâu.
+            </div>
+        }
+    </div>
+
+    <div class="card-box">
+        <h3>Dữ liệu chi tiết</h3>
+        <table class="pivot-table">
+            <thead>
+                <tr>
+                    <th>@(Model.Level == "year" ? "Năm" : Model.Level == "quarter" ? "Quý" : "Tháng")</th>
+                    <th class="num">Doanh thu</th>
+                    <th class="num">Số lượng đặt</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Points)
+                {
+                    <tr>
+                        <td>@p.Label</td>
+                        <td class="num">@p.Value.ToString("N0")</td>
+                        <td class="num">@p.Quantity.ToString("N0")</td>
+                    </tr>
+                }
+                @if (Model.Points.Count == 0)
+                {
+                    <tr><td colspan="3" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-box">
+        <details>
+            <summary class="text-muted small">SQL đã chạy</summary>
+            <pre style="font-size:12px;background:#f8fafc;padding:12px;border-radius:6px;margin-top:8px;white-space:pre-wrap;">@Model.Sql</pre>
+        </details>
+    </div>
+</div>
+
+<script type="application/json" id="drill-data">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    labels = Model.Points.Select(p => p.Label).ToArray(),
+    values = Model.Points.Select(p => (double)p.Value).ToArray(),
+    keyYears = Model.Points.Select(p => p.KeyYear).ToArray(),
+    keyQuarters = Model.Points.Select(p => (int?)p.KeyQuarter).ToArray(),
+    level = Model.Level,
+    measureLabel = Model.MeasureLabel,
+}))
+</script>
+
+@section Scripts {
+<script>
+(function() {
+    const data = JSON.parse(document.getElementById('drill-data').textContent);
+    const ctx = document.getElementById('drillChart');
+    if (!ctx || !data.labels.length) return;
+
+    const colors = data.labels.map((_, i) =>
+        `hsl(${(i * 57) % 360} 70% 55%)`);
+
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: data.measureLabel,
+                data: data.values,
+                backgroundColor: colors,
+                borderRadius: 6,
+                hoverBackgroundColor: '#1e40af',
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => data.measureLabel + ': ' + ctx.parsed.y.toLocaleString('vi-VN'),
+                        afterLabel: () => data.level !== 'month' ? '  ↓ Click để drill down' : '',
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: (v) => v.toLocaleString('vi-VN') }
+                }
+            },
+            onClick: (evt, elements) => {
+                if (!elements.length || data.level === 'month') return;
+                const i = elements[0].index;
+                const url = new URL(window.location.href);
+                if (data.level === 'year') {
+                    url.searchParams.set('level', 'quarter');
+                    url.searchParams.set('year', data.keyYears[i]);
+                    url.searchParams.delete('quarter');
+                } else if (data.level === 'quarter') {
+                    url.searchParams.set('level', 'month');
+                    url.searchParams.set('year', data.keyYears[i]);
+                    url.searchParams.set('quarter', data.keyQuarters[i]);
+                }
+                window.location.href = url.toString();
+            },
+            onHover: (evt, elements) => {
+                evt.native.target.style.cursor =
+                    elements.length && data.level !== 'month' ? 'pointer' : 'default';
+            },
+        }
+    });
+})();
+</script>
+}

@@ -1,0 +1,169 @@
+@model OlapWebBTL.Models.DashboardVM
+@{
+    ViewData["Title"] = "Tồn kho - Phân tích kho hàng";
+    var dim = Model.DimensionChon;
+    var level = Model.LevelChon;
+}
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">
+        <strong>Lỗi MDX:</strong> @ViewBag.Error
+        <pre class="small mt-2 mb-0">@ViewBag.Mdx</pre>
+    </div>
+}
+
+<div class="filter-panel">
+    <div class="d-flex justify-content-between align-items-center">
+        <h4 class="mb-0"><i class="bi bi-boxes"></i> PHÂN TÍCH TỒN KHO</h4>
+        <a href="@Url.Action("Index")" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise"></i> Reset
+        </a>
+    </div>
+    <hr class="my-2">
+
+    <div class="row g-2 align-items-center">
+        <div class="col-auto">
+            <label class="small text-muted">Chiều phân tích:</label>
+        </div>
+        <div class="col-auto">
+            <a class="filter-chip @(dim == "MatHang" ? "active" : "")"
+               href="@Url.Action("Index", new { dim = "MatHang", level = "MoTa" })">
+                <i class="bi bi-box-seam"></i> Mặt hàng
+            </a>
+            <a class="filter-chip @(dim == "ThoiGian" ? "active" : "")"
+               href="@Url.Action("Index", new { dim = "ThoiGian", level = "Nam" })">
+                <i class="bi bi-calendar"></i> Thời gian
+            </a>
+        </div>
+    </div>
+
+    @if (dim == "MatHang")
+    {
+        <div class="mt-2">
+            <span class="small text-muted me-2">Cấp độ:</span>
+            @foreach (var lv in new[] { ("MoTa", "Mô tả"), ("KichCo", "Kích cỡ"), ("Ma", "Mã MH") })
+            {
+                <a class="filter-chip @(level == lv.Item1 ? "active" : "")"
+                   href="@Url.Action("Index", new { dim, level = lv.Item1 })">@lv.Item2</a>
+            }
+        </div>
+    }
+    else if (dim == "ThoiGian")
+    {
+        <div class="mt-2">
+            <span class="small text-muted me-2">Cấp độ:</span>
+            @foreach (var lv in new[] { ("Nam", "Năm"), ("Quy", "Quý"), ("Thang", "Tháng") })
+            {
+                <a class="filter-chip @(level == lv.Item1 ? "active" : "")"
+                   href="@Url.Action("Index", new { dim, level = lv.Item1 })">@lv.Item2</a>
+            }
+        </div>
+    }
+</div>
+
+<div class="kpi-row">
+    <div class="kpi-card blue">
+        <div class="kpi-label">Tổng tồn kho</div>
+        <div class="kpi-value">@Model.TongSoLuong.ToString("N0")</div>
+        <div class="kpi-sub">đơn vị sản phẩm</div>
+    </div>
+    <div class="kpi-card green">
+        <div class="kpi-label">Số dòng lưu kho</div>
+        <div class="kpi-value">@Model.TongSoDon.ToString("N0")</div>
+        <div class="kpi-sub">bản ghi Fact_LuuKho</div>
+    </div>
+    <div class="kpi-card orange">
+        <div class="kpi-label">Nhóm thống kê</div>
+        <div class="kpi-value">@Model.SoDong</div>
+        <div class="kpi-sub">theo chiều đang chọn</div>
+    </div>
+    <div class="kpi-card purple">
+        <div class="kpi-label">Trung bình / nhóm</div>
+        <div class="kpi-value">
+            @(Model.SoDong > 0 ? (Model.TongSoLuong / Model.SoDong).ToString("N0") : "0")
+        </div>
+        <div class="kpi-sub">đơn vị / nhóm</div>
+    </div>
+</div>
+
+<div class="chart-row">
+    <div class="card-box">
+        <h3><i class="bi bi-bar-chart-fill"></i> Biểu đồ cột - Tồn kho theo @(dim == "MatHang" ? "mặt hàng" : "thời gian")</h3>
+        <canvas id="barChart"></canvas>
+    </div>
+    <div class="card-box">
+        <h3><i class="bi bi-pie-chart-fill"></i> Tỷ trọng tồn kho</h3>
+        <canvas id="pieChart"></canvas>
+    </div>
+</div>
+
+<div class="card-box">
+    <h3><i class="bi bi-table"></i> Chi tiết - Cube Lưu Kho</h3>
+    <div class="table-responsive">
+        <table class="pivot-table">
+            <thead>
+                <tr>
+                    <th>@(dim == "MatHang" ? "Mặt hàng" : "Thời gian")</th>
+                    <th class="num">Số lượng trong kho</th>
+                    <th class="num">Số dòng</th>
+                    <th class="num">% tổng</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model.Rows.OrderByDescending(x => x.SoLuong))
+            {
+                <tr>
+                    <td><strong>@r.Label</strong></td>
+                    <td class="num">@r.SoLuong.ToString("N0")</td>
+                    <td class="num">@r.SoDon.ToString("N0")</td>
+                    <td class="num">
+                        <span class="bar-inline"><div style="width:@r.TyLe%"></div></span>
+                        @r.TyLe.ToString("0.00")%
+                    </td>
+                </tr>
+            }
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="4" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-info small mt-3">
+    <i class="bi bi-info-circle"></i>
+    <strong>Lưu ý:</strong> Dashboard này phân tích trên <code>[Measures].[So Luong Trong Kho]</code> từ Fact_LuuKho.
+    Để phân tích tồn kho <b>theo cửa hàng / thành phố / bang</b>, bạn cần add <code>Dim Cua Hang</code> vào cube
+    (hiện tại cube chưa có dimension này).
+</div>
+
+@section Scripts {
+<script>
+const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BarData.Select(x => x.Label)));
+const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BarData.Select(x => x.Value)));
+
+const palette = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#eab308'];
+const bgColors = labels.map((_, i) => palette[i % palette.length]);
+
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Tồn kho', data: values, backgroundColor: '#10b981', borderRadius: 4 }] },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: v => v.toLocaleString('vi-VN') } } }
+    }
+});
+
+new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: { labels, datasets: [{ data: values, backgroundColor: bgColors }] },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } }
+    }
+});
+</script>
+}

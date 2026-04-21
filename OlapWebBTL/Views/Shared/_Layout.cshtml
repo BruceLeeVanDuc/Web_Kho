@@ -23,20 +23,32 @@
             </div>
         </div>
         <nav class="nav flex-column">
+            <div class="nav-section">Phân tích ROLAP (Cuboid)</div>
+            <a class="nav-link @(active.StartsWith("BanHang/") ? "active" : "")" asp-controller="BanHang" asp-action="Index">
+                <i class="bi bi-cart-check"></i> Bán hàng — 70 khối
+            </a>
+            <a class="nav-link @(active.StartsWith("LuuKho/") ? "active" : "")" asp-controller="LuuKho" asp-action="Index">
+                <i class="bi bi-boxes"></i> Lưu kho — 40 khối
+            </a>
+
+            <div class="nav-section">Kịch bản OLAP</div>
+            <a class="nav-link @(active=="Scenario/DrillChart" ? "active" : "")" asp-controller="Scenario" asp-action="DrillChart">
+                <i class="bi bi-bar-chart-steps"></i> 5.3.1 Drill Chart
+            </a>
+            <a class="nav-link @(active=="Scenario/Pivot" ? "active" : "")" asp-controller="Scenario" asp-action="Pivot">
+                <i class="bi bi-grid-3x3"></i> 5.3.2 Pivot Explorer
+            </a>
+            <a class="nav-link @(active=="Scenario/DrillAcross" ? "active" : "")" asp-controller="Scenario" asp-action="DrillAcross">
+                <i class="bi bi-diagram-3"></i> 5.3.3 Drill Across
+            </a>
+            <a class="nav-link @(active=="Scenario/DrillThrough" ? "active" : "")" asp-controller="Scenario" asp-action="DrillThrough">
+                <i class="bi bi-search"></i> 4.1 Drill Through
+            </a>
+
+            <div class="nav-section">Phân tích MOLAP (SSAS)</div>
             <a class="nav-link @(active.StartsWith("Dashboard/") ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
-                <i class="bi bi-speedometer2"></i> Slice &amp; Dice
+                <i class="bi bi-speedometer2"></i> Slice &amp; Dice (MDX)
             </a>
-            <div class="nav-section">9 Báo cáo OLAP</div>
-            <a class="nav-link @(active == "Reports/Index" ? "active" : "")" asp-controller="Reports" asp-action="Index">
-                <i class="bi bi-list-ul"></i> Danh sách báo cáo
-            </a>
-            @for (int i = 1; i <= 9; i++)
-            {
-                var a = $"Reports/Report{i}";
-                <a class="nav-link nav-sub @(active == a ? "active" : "")" asp-controller="Reports" asp-action="@("Report" + i)">
-                    <span class="badge">@i</span> @ReportTitles[i - 1]
-                </a>
-            }
             <div class="nav-section">Hệ thống</div>
             <a class="nav-link @(active.StartsWith("Diagnostics/") ? "active" : "")" asp-controller="Diagnostics" asp-action="Index">
                 <i class="bi bi-tools"></i> Diagnostics
@@ -66,18 +78,3 @@
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-
-@functions {
-    static readonly string[] ReportTitles = new[]
-    {
-        "Cửa hàng & mặt hàng",
-        "Đơn hàng theo KH",
-        "CH bán mặt hàng của KH",
-        "VPĐD có tồn kho >X",
-        "Chi tiết 1 đơn",
-        "TP/Bang của KH",
-        "Tồn kho MH tại TP",
-        "Chi tiết đơn hàng",
-        "Phân loại KH"
-    };
-}

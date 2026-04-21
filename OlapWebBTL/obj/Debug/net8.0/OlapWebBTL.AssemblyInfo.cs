@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OlapWebBTL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1a1bf1b6415245c1be681de11e8a4ebab5a6a09e")]
 [assembly: System.Reflection.AssemblyProductAttribute("OlapWebBTL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OlapWebBTL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

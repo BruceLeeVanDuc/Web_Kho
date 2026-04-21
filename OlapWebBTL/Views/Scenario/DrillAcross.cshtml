@@ -1,0 +1,196 @@
+@model OlapWebBTL.Models.DrillAcrossVM
+@{
+    ViewData["Title"] = "5.3.3 Drill Across — Sales × Inventory";
+}
+
+<div class="content">
+    <div class="card-box" style="background:linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%);border:none;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div style="font-size:12px;color:#065f46;font-weight:700;letter-spacing:1px;">KỊCH BẢN 5.3.3</div>
+                <h3 class="m-0">Drill Across — Doanh số × Tồn kho theo tháng</h3>
+                <div class="text-muted small mt-1">
+                    Kết hợp <b>2 cube</b>: doanh số bán (<code>@Model.SalesTable</code>)
+                    và tồn kho cuối kỳ (<code>@Model.InventoryTable</code>) cho 1 sản phẩm trong 12 tháng.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-box">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="small text-muted">Sản phẩm</label>
+                <select name="product" class="form-select form-select-sm">
+                    @foreach (var p in Model.Products)
+                    {
+                        <option value="@p.Ma_MH" selected="@(p.Ma_MH==Model.Product)">@p.Display</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-muted">Năm</label>
+                <select name="year" class="form-select form-select-sm">
+                    @foreach (var y in Model.Years)
+                    {
+                        <option value="@y" selected="@(y==Model.Year)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-arrow-right-circle"></i> Phân tích
+                </button>
+            </div>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="alert alert-danger"><b>Lỗi:</b> @Model.Error</div>
+    }
+
+    <div class="kpi-row">
+        <div class="kpi-card blue">
+            <div class="kpi-label">Sản phẩm</div>
+            <div class="kpi-value" style="font-size:16px;">@Model.Product</div>
+            <div class="kpi-sub">@Model.ProductName</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-label">Tổng doanh thu @Model.Year</div>
+            <div class="kpi-value">@Model.TotalSales.ToString("N0")</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-label">Tổng SL đặt</div>
+            <div class="kpi-value">@Model.TotalQty.ToString("N0")</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-label">Tồn kho TB</div>
+            <div class="kpi-value">@Model.AvgInventory.ToString("N0")</div>
+        </div>
+    </div>
+
+    <div class="card-box">
+        <h3>Combo chart — Bán (bar) vs Tồn kho (line)</h3>
+        <div style="position:relative;height:420px;">
+            <canvas id="comboChart"></canvas>
+        </div>
+        <div class="small text-muted mt-2">
+            <i class="bi bi-info-circle"></i>
+            <b>Coverage ratio</b> = Tồn kho cuối tháng T ÷ SL đặt tháng T+1. ≥ 1: đủ hàng, &lt; 1: thiếu.
+        </div>
+    </div>
+
+    <div class="card-box">
+        <h3>Bảng chi tiết 12 tháng</h3>
+        <table class="pivot-table">
+            <thead>
+                <tr>
+                    <th>Tháng</th>
+                    <th class="num">SL đặt</th>
+                    <th class="num">Doanh thu</th>
+                    <th class="num">Tồn cuối kỳ</th>
+                    <th class="num">Coverage [T→T+1]</th>
+                    <th>Đánh giá</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model.Months)
+                {
+                    <tr>
+                        <td>T@(m.Month.ToString("D2"))</td>
+                        <td class="num">@m.Quantity.ToString("N0")</td>
+                        <td class="num">@m.Sales.ToString("N0")</td>
+                        <td class="num">@m.Inventory.ToString("N0")</td>
+                        <td class="num">
+                            @(m.Coverage == null ? "—" : m.Coverage.Value.ToString("N2"))
+                        </td>
+                        <td>
+                            @if (m.Coverage == null) { <span class="text-muted">—</span> }
+                            else if (m.Coverage >= 1.0) { <span class="status-ok">Đủ hàng</span> }
+                            else { <span class="status-err">Thiếu</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="application/json" id="across-data">
+@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+{
+    labels = Model.Months.Select(m => $"T{m.Month:D2}").ToArray(),
+    qty = Model.Months.Select(m => (double)m.Quantity).ToArray(),
+    inv = Model.Months.Select(m => (double)m.Inventory).ToArray(),
+    cov = Model.Months.Select(m => m.Coverage ?? 0).ToArray(),
+}))
+</script>
+
+@section Scripts {
+<script>
+(function() {
+    const d = JSON.parse(document.getElementById('across-data').textContent);
+    const ctx = document.getElementById('comboChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        data: {
+            labels: d.labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'SL đặt (bán ra)',
+                    data: d.qty,
+                    backgroundColor: '#3b82f6',
+                    yAxisID: 'y',
+                    borderRadius: 4,
+                },
+                {
+                    type: 'line',
+                    label: 'Tồn kho cuối kỳ',
+                    data: d.inv,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.15)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true,
+                    yAxisID: 'y',
+                    pointRadius: 4,
+                },
+                {
+                    type: 'line',
+                    label: 'Coverage (Inv/Next Qty)',
+                    data: d.cov,
+                    borderColor: '#10b981',
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: false,
+                    yAxisID: 'y2',
+                    pointRadius: 3,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'Số lượng' },
+                    ticks: { callback: v => v.toLocaleString('vi-VN') }
+                },
+                y2: {
+                    position: 'right',
+                    title: { display: true, text: 'Coverage ratio' },
+                    grid: { drawOnChartArea: false },
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+})();
+</script>
+}

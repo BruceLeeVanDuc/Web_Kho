@@ -1,0 +1,309 @@
+@model OlapWebBTL.Models.OlapDashboardVM
+@{
+    var q = Model.Query;
+    var r = Model.Result;
+    var m = Model.Meta;
+    var o = Model.Options;
+    var f = q.Filters;
+    var isBH = m.CubeCode == "BH";
+    var controllerName = isBH ? "BanHang" : "LuuKho";
+    string Sel(string key, string val) => f.TryGetValue(key, out var xs) && xs.Contains(val) ? "selected" : "";
+    string Val(string key) => f.TryGetValue(key, out var xs) && xs.Count > 0 ? xs[0] : "";
+    var barJson = System.Text.Json.JsonSerializer.Serialize(r.BarData);
+    var pieJson = System.Text.Json.JsonSerializer.Serialize(r.PieData);
+
+    // Group-by options
+    var gTimeOpts = new Dictionary<string, string> { [""] = "— Không —", ["Nam"] = "Năm", ["Quy"] = "Quý", ["Thang"] = "Tháng" };
+    var gObjOpts = isBH
+        ? new Dictionary<string, string> { [""] = "— Không —", ["Bang"] = "Bang", ["Ten_thanh_pho"] = "Thành phố", ["Loai_khach_hang"] = "Loại KH", ["Ma_KH"] = "Mã KH" }
+        : new Dictionary<string, string> { [""] = "— Không —", ["Bang"] = "Bang", ["Ten_thanh_pho"] = "Thành phố", ["Ma_CH"] = "Mã CH" };
+    var gProdOpts = new Dictionary<string, string> { [""] = "— Không —", ["Ma_MH"] = "Mã mặt hàng" };
+}
+
+<div class="row g-3">
+    @* ===== LEFT: FILTER PANEL ===== *@
+    <div class="col-lg-3">
+        <form method="get" asp-controller="@controllerName" asp-action="Index" id="olap-form" class="filter-panel">
+            <div class="filter-title">
+                <i class="bi bi-funnel-fill"></i> Bộ lọc (OLAP)
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label"><i class="bi bi-clock"></i> THỜI GIAN</div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small">Năm</label>
+                        <select class="form-select form-select-sm" name="f_Nam">
+                            <option value="">Tất cả năm</option>
+                            @foreach (var y in o.Years)
+                            {
+                                <option value="@y" selected="@(Val("Nam") == y.ToString())">@y</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="small">Quý</label>
+                        <select class="form-select form-select-sm" name="f_Quy">
+                            <option value="">Tất cả</option>
+                            @foreach (var qv in o.Quarters)
+                            {
+                                <option value="@qv" selected="@(Val("Quy") == qv.ToString())">Q@(qv)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="small">Tháng</label>
+                        <select class="form-select form-select-sm" name="f_Thang">
+                            <option value="">Tất cả tháng</option>
+                            @foreach (var mo in o.Months)
+                            {
+                                <option value="@mo" selected="@(Val("Thang") == mo.ToString())">Tháng @mo</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-label"><i class="bi bi-geo-alt-fill"></i> ĐỊA ĐIỂM</div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small">Bang</label>
+                        <select class="form-select form-select-sm" name="f_Bang" id="selBang" onchange="filterCities();">
+                            <option value="">Tất cả</option>
+                            @foreach (var b in o.Bangs)
+                            {
+                                <option value="@b" selected="@(Val("Bang") == b)">@b</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="small">Thành phố</label>
+                        <select class="form-select form-select-sm" name="f_Ten_thanh_pho" id="selTp">
+                            <option value="">Tất cả</option>
+                            @foreach (var city in o.Cities)
+                            {
+                                <option value="@city" data-bang="@(o.CitiesByBang.FirstOrDefault(kv => kv.Value.Contains(city)).Key ?? "")" selected="@(Val("Ten_thanh_pho") == city)">@city</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            @if (isBH)
+            {
+                <div class="filter-section">
+                    <div class="filter-label"><i class="bi bi-people-fill"></i> KHÁCH HÀNG</div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="f_Loai_khach_hang" id="lkh_all" value="" @(string.IsNullOrEmpty(Val("Loai_khach_hang")) ? "checked" : "")>
+                            <label class="form-check-label small" for="lkh_all">Tất cả</label>
+                        </div>
+                        @foreach (var lk in o.CustomerTypes)
+                        {
+                            var id = "lkh_" + lk.GetHashCode();
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="f_Loai_khach_hang" id="@id" value="@lk" @(Val("Loai_khach_hang") == lk ? "checked" : "")>
+                                <label class="form-check-label small" for="@id">@lk</label>
+                            </div>
+                        }
+                    </div>
+                    <label class="small">Mã khách hàng</label>
+                    <input type="text" class="form-control form-control-sm" name="f_Ma_KH" value="@Val("Ma_KH")" placeholder="Gõ mã chính xác..." />
+                </div>
+            }
+            else
+            {
+                <div class="filter-section">
+                    <div class="filter-label"><i class="bi bi-shop"></i> CỬA HÀNG</div>
+                    <label class="small">Mã cửa hàng</label>
+                    <input type="text" class="form-control form-control-sm" name="f_Ma_CH" value="@Val("Ma_CH")" placeholder="Gõ mã chính xác..." />
+                </div>
+            }
+
+            <div class="filter-section">
+                <div class="filter-label"><i class="bi bi-box-seam"></i> SẢN PHẨM</div>
+                <label class="small">Mã mặt hàng</label>
+                <input type="text" class="form-control form-control-sm" name="f_Ma_MH" value="@Val("Ma_MH")" placeholder="Gõ mã chính xác..." />
+            </div>
+
+            <hr />
+            <div class="filter-label"><i class="bi bi-bar-chart-line"></i> PHÂN TÍCH THEO</div>
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <label class="small">Thời gian</label>
+                    <select class="form-select form-select-sm" name="gTime">
+                        @foreach (var kv in gTimeOpts)
+                        {
+                            <option value="@kv.Key" selected="@(Model.GroupTime == kv.Key)">@kv.Value</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="small">@m.ObjectDimName</label>
+                    <select class="form-select form-select-sm" name="gObj">
+                        @foreach (var kv in gObjOpts)
+                        {
+                            <option value="@kv.Key" selected="@(Model.GroupObject == kv.Key)">@kv.Value</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="small">Sản phẩm</label>
+                    <select class="form-select form-select-sm" name="gProd">
+                        @foreach (var kv in gProdOpts)
+                        {
+                            <option value="@kv.Key" selected="@(Model.GroupProduct == kv.Key)">@kv.Value</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-play-fill"></i> Áp dụng
+                </button>
+                <a href="?" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i> Đặt lại bộ lọc
+                </a>
+            </div>
+
+            <div class="filter-footer">
+                <div>Khối đang truy vấn:</div>
+                <code class="small">@r.TableName</code>
+            </div>
+        </form>
+    </div>
+
+    @* ===== RIGHT: MAIN DASHBOARD ===== *@
+    <div class="col-lg-9">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card-box text-center">
+                    <div class="small text-muted">@(isBH ? "Tổng doanh thu" : "Tổng tồn kho")</div>
+                    <div class="h4 fw-bold text-primary mb-0">@r.TotalMeasure1.ToString("N0")</div>
+                </div>
+            </div>
+            @if (isBH)
+            {
+                <div class="col-md-3">
+                    <div class="card-box text-center">
+                        <div class="small text-muted">Tổng SL đặt</div>
+                        <div class="h4 fw-bold text-success mb-0">@r.TotalMeasure2.ToString("N0")</div>
+                    </div>
+                </div>
+            }
+            <div class="col-md-3">
+                <div class="card-box text-center">
+                    <div class="small text-muted">Số dòng</div>
+                    <div class="h4 fw-bold text-info mb-0">@r.TotalRows</div>
+                </div>
+            </div>
+            <div class="col-md-@(isBH ? "3" : "6")">
+                <div class="card-box text-center">
+                    <div class="small text-muted">Cube</div>
+                    <div class="h4 fw-bold mb-0">@m.CubeName</div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(r.Error))
+            {
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <strong>Lỗi:</strong> @r.Error
+                        <pre class="mb-0 mt-2 small" style="white-space:pre-wrap;">@r.Sql</pre>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="col-lg-7">
+                    <div class="card-box">
+                        <h6 class="mb-2"><i class="bi bi-bar-chart"></i> Top 15 — @(isBH ? "Doanh thu" : "Tồn kho")</h6>
+                        <canvas id="chartBar" height="140"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card-box">
+                        <h6 class="mb-2"><i class="bi bi-pie-chart"></i> Cơ cấu (Top 15)</h6>
+                        <canvas id="chartPie" height="140"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card-box">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="bi bi-table"></i> Bảng phân tích — @r.Rows.Count dòng</h6>
+                            <small class="text-muted">@string.Join(", ", r.MeasureColumns)</small>
+                        </div>
+                        <div class="table-responsive" style="max-height:500px;">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead class="table-dark" style="position:sticky;top:0;">
+                                    <tr>
+                                        @foreach (var col in r.DimColumns)
+                                        {
+                                            <th>@col</th>
+                                        }
+                                        @if (isBH)
+                                        {
+                                            <th class="text-end">SL đặt</th>
+                                            <th class="text-end">Doanh thu</th>
+                                            <th class="text-end">Giá TB</th>
+                                        }
+                                        else
+                                        {
+                                            <th class="text-end">Tồn kho</th>
+                                        }
+                                        <th class="text-end">Tỷ lệ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in r.Rows)
+                                    {
+                                        <tr>
+                                            @foreach (var v in row.DimValues)
+                                            {
+                                                <td>@(string.IsNullOrEmpty(v) ? "—" : v)</td>
+                                            }
+                                            @if (isBH)
+                                            {
+                                                <td class="text-end">@row.Measure2.ToString("N0")</td>
+                                                <td class="text-end fw-semibold">@row.Measure1.ToString("N0")</td>
+                                                <td class="text-end">@row.Avg.ToString("N0")</td>
+                                            }
+                                            else
+                                            {
+                                                <td class="text-end fw-semibold">@row.Measure1.ToString("N0")</td>
+                                            }
+                                            <td class="text-end"><span class="badge bg-secondary">@row.TyLe%</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script id="olap-chart-data" type="application/json">
+{ "bar": @Html.Raw(barJson), "pie": @Html.Raw(pieJson) }
+</script>
+
+<script>
+    // Khi đổi Bang, lọc các Thành phố cùng Bang trong select.
+    function filterCities() {
+        var bang = document.getElementById('selBang').value;
+        var sel = document.getElementById('selTp');
+        if (!sel) return;
+        Array.from(sel.options).forEach(function (o, i) {
+            if (i === 0) return;
+            var b = o.getAttribute('data-bang') || '';
+            o.hidden = bang && b && b !== bang;
+            if (o.hidden && o.selected) { sel.value = ''; }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', filterCities);
+</script>
